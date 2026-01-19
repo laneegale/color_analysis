@@ -84,7 +84,7 @@ uploaded_icc = st.file_uploader(
     type=["icm"]
 )
 uploaded_py = st.file_uploader(
-    "py transform file (Optional)",
+    "py transform file (Optional, make sure in this file there is a function named 'calibrate' where both input and output is np array)",
     type=["py"]
 )
 # -------- Proceed only if required files exist --------
