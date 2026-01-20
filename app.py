@@ -7,8 +7,7 @@ import os
 import io
 import importlib.util
 
-from src.calibration_analyzer.analyzer import AppliedImageAnalyzer, IT8Analyzer
-from src.calibration_analyzer.CEL_GOG_Matrix_Conversion_1113 import transform_img
+from src.analyzer import AppliedImageAnalyzer, IT8Analyzer
 
 def resize_for_display(img: Image.Image, max_width=600):
     w, h = img.size
@@ -162,8 +161,7 @@ if ready:
         transformed_np = None 
         if transform_default_clicked:
             # --- YOUR EXACT TRANSFORM LOGIC ---
-            img_np = np.array(analyzer.slide)
-            transformed_np = transform_img(img_np)
+            pass
 
         elif transform_icc_clicked:
             if uploaded_icc is None:

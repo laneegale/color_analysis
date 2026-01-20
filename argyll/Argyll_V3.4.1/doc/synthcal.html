@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>synthcal</title>
+    <meta http-equiv="content-type" content="text/html;
+      charset=windows-1252">
+    <meta name="author" content="Graeme Gill">
+  </head>
+  <body>
+    <h2><b>spectro/synthcal</b></h2>
+    <h3>Summary</h3>
+    Create synthetic calibration file. The default is a linear
+    calibration file.<br>
+    <h3>Usage</h3>
+    <font size="-1"><span style="font-family: monospace;">synthcal</span><i
+        style="font-family: monospace;"> </i><span style="font-family:
+        monospace;">[-options] </span><i style="font-family:
+        monospace;">basename<br>
+      </i><span style="font-family: monospace;"></span></font><font
+      size="-1"><span style="font-family: monospace;">
+    
+
+    <br>
+    <a name="r"></a>The <span style="font-weight: bold;">-r</span>
+    parameter selects the table resolution. The default is 256.<br>
+    <br>
+    <a name="t"></a>The <span style="font-weight: bold;">-t</span>
+    option selects the type of device the calibration file is intended
+    for. Default is display.<br>
+    
+
+    <br>
+    <a name="d"></a>The <span style="font-weight: bold;">-d</span>
+    option selects the device colorspace. The default for input and
+    display is <font style="font-weight: bold;" size="-1"><span
+        style="font-family: monospace;">Video RGB</span></font><font
+      size="-1"><span style="font-family: monospace;">, while the
+        default for output is <span style="font-weight: bold;">CMYK</span>.<br>
+      </span></font><br>
+    <a name="D"></a> The <b>-D</b> parameter modifies the colorspace
+    set by <span style="font-weight: bold;">-d</span> by allowing
+    individual colorants to be added or subtracted from the colorspace.<br>
+    <br>
+    Optionally it can be used to create a non-linear calibration file,
+    useful for diagnostics. Each of the device channel curves can be
+    given a gamma (power curve) shape, scaled to a maximum other than
+    1.0, and offset from a value other than 0.0. If less than the number
+    of channels values is set in -o, -s or -p, then the last value will
+    be extended to the remaining channels.<br>
+    <br>
+  </body>
+</html>
