@@ -25,10 +25,10 @@ def apply_icc(img_np, icc_bytes):
         icc_path = f.name
 
     srgb = ImageCms.createProfile("sRGB")
-    dst_profile = ImageCms.ImageCmsProfile(icc_path)
+    src_profile = ImageCms.ImageCmsProfile(icc_path)
 
     img_icc = ImageCms.profileToProfile(
-        img, srgb, dst_profile, outputMode=img.mode
+        img, src_profile, srgb, outputMode=img.mode
     )
     return np.array(img_icc)
 
@@ -81,7 +81,7 @@ else:
 
 uploaded_icc = st.file_uploader(
     "ICC file (Optional)",
-    type=["icm"]
+    type=["icm", "icc"]
 )
 uploaded_py = st.file_uploader(
     "py transform file (Optional, make sure in this file there is a function named 'calibrate' where both input and output is np array)",
