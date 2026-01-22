@@ -10,11 +10,14 @@ class BaseImageAnalyzer(ABC):
 
     def __init__(self, slide_path):
         self.slide_path = slide_path
+        self.base_slide = Image.open(slide_path).convert("RGB")
+        self.base_image_np = np.asarray(self.base_slide)
         self.slide = Image.open(slide_path).convert("RGB")
         self.image_np = np.asarray(self.slide)
         self.h, self.w = self.image_np.shape[:2]
 
-        self.bounding_boxes = self._generate_bounding_boxes()
+        # self.bounding_boxes = self._generate_bounding_boxes()
+        self.bounding_boxes = []
         self.labels = None
 
     @abstractmethod
@@ -50,6 +53,10 @@ class BaseImageAnalyzer(ABC):
             label: self.get_avg_color(label, round_to)
             for label in self.bounding_boxes
         }
+
+    def rotate(self, angle):
+        self.slide = self.base_slide.rotate(angle, resample=Image.BICUBIC, expand=False)
+        self.image_np = np.array(self.slide)
 
     def draw_boxes(self, color=(0, 255, 0), thickness=2):
         img = self.image_np.copy()
@@ -161,30 +168,72 @@ class AppliedImageAnalyzer(BaseImageAnalyzer):
             "roi_len":  round(r * 250 * 200 / 4150),
         }
 
-    def _generate_bounding_boxes(self):
-        cfg = self._get_config()
-        size = cfg["roi_len"]
+    # def _generate_bounding_boxes(self):
+    #     cfg = self._get_config()
+    #     size = cfg["roi_len"]
+    #     boxes = {}
+
+    #     # Control Area (CA)
+    #     ca_top = (self.h // 2) - (size // 2)
+    #     ca_left = (cfg["ca_w"] // 2) - (size // 2)
+    #     boxes["CA"] = (ca_top, ca_top + size, ca_left, ca_left + size)
+
+    #     # Grid
+    #     start_x = cfg["ca_w"] + cfg["x_margin"] + (cfg["diam"] - size) // 2
+    #     start_y = (cfg["diam"] - size) // 2
+    #     stride_x = cfg["diam"] + cfg["x_gap"]
+    #     stride_y = cfg["diam"] + cfg["y_gap"]
+
+    #     row_names = ["A", "B", "C", "D"]
+
+    #     for r in range(self.num_rows):
+    #         for c in range(self.num_cols):
+    #             top = start_y + stride_y * r
+    #             left = start_x + stride_x * c
+    #             label = f"{row_names[r]}{c+1}"
+    #             boxes[label] = (top, top + size, left, left + size)
+
+    #     return boxes
+    
+    def _generate_bounding_boxes(
+        self,
+        origin,
+        rows,
+        cols,
+        box_w,
+        box_h,
+        stride_x,
+        stride_y,
+        anchor="top-left",
+        ca_origin=None
+    ):
         boxes = {}
+        ox, oy = origin
+
+        if anchor == "center":
+            ox -= box_w // 2
+            oy -= box_h // 2
 
         # Control Area (CA)
-        ca_top = (self.h // 2) - (size // 2)
-        ca_left = (cfg["ca_w"] // 2) - (size // 2)
-        boxes["CA"] = (ca_top, ca_top + size, ca_left, ca_left + size)
+        if ca_origin:
+            ca_x, ca_y = ca_origin
+            if anchor == "center":
+                ca_x -= box_w // 2
+                ca_y -= box_h // 2
+            boxes["CA"] = (ca_y, ca_y + box_h, ca_x, ca_x + box_w)
 
         # Grid
-        start_x = cfg["ca_w"] + cfg["x_margin"] + (cfg["diam"] - size) // 2
-        start_y = (cfg["diam"] - size) // 2
-        stride_x = cfg["diam"] + cfg["x_gap"]
-        stride_y = cfg["diam"] + cfg["y_gap"]
+        row_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]  # Extended for flexibility
 
-        row_names = ["A", "B", "C", "D"]
+        for r in range(rows):
+            for c in range(cols):
+                x1 = int(ox + c * stride_x)
+                y1 = int(oy + r * stride_y)
+                x2 = x1 + box_w
+                y2 = y1 + box_h
 
-        for r in range(self.num_rows):
-            for c in range(self.num_cols):
-                top = start_y + stride_y * r
-                left = start_x + stride_x * c
-                label = f"{row_names[r]}{c+1}"
-                boxes[label] = (top, top + size, left, left + size)
+                label = f"{row_names[r % len(row_names)]}{c + 1}"
+                boxes[label] = (y1, y2, x1, x2)
 
         return boxes
 
@@ -267,32 +316,93 @@ class IT8Analyzer(BaseImageAnalyzer):
         return data
 
 
-    def _generate_bounding_boxes(self):
+    # def _generate_bounding_boxes(self):
+    #     boxes = {}
+
+    #     # Main grid A–L, 1–22
+    #     row_labels = [chr(i) for i in range(ord('A'), ord('A') + 12)]
+
+    #     start_x = self.al_origin[0] + self.offset
+    #     start_y = self.al_origin[1] + self.offset
+
+    #     for r, row in enumerate(row_labels):
+    #         for c in range(22):
+    #             x = start_x + c * self.stride
+    #             y = start_y + r * self.stride
+    #             boxes[f"{row}{c+1}"] = (
+    #                 y, y + self.roi_size, x, x + self.roi_size
+    #             )
+
+    #     # Grayscale strip
+    #     gs_x = self.gs_origin[0] + self.offset
+    #     gs_y = self.gs_origin[1] + self.offset
+
+    #     for c in range(24):
+    #         x = gs_x + c * self.stride
+    #         boxes[f"GS{c}"] = (
+    #             gs_y, gs_y + self.roi_size, x, x + self.roi_size
+    #         )
+
+    #     return boxes
+    
+    def _generate_bounding_boxes(
+        self,
+        origin,
+        rows=12,  # Fixed for IT8: A-L (ignored, always 12)
+        cols=22,  # Fixed for IT8: 1-22 (ignored, always 22)
+        box_w=None,
+        box_h=None,
+        stride_x=None,
+        stride_y=None,
+        anchor="center",
+        ca_origin=None  # For grayscale strip (GS)
+    ):
+        """
+        Generate bounding boxes for IT8 target.
+        
+        IT8 has fixed structure:
+        - Main grid: 12 rows (A-L) x 22 columns (1-22)
+        - Grayscale strip: 24 boxes (GS0-GS23)
+        """
         boxes = {}
-
-        # Main grid A–L, 1–22
+        
+        # Use instance defaults if not provided
+        box_size = box_w if box_w is not None else self.roi_size
+        stride_x = stride_x if stride_x is not None else self.stride
+        stride_y = stride_y if stride_y is not None else self.stride
+        
+        # Main grid A–L, 1–22 (always 12x22 for IT8)
         row_labels = [chr(i) for i in range(ord('A'), ord('A') + 12)]
-
-        start_x = self.al_origin[0] + self.offset
-        start_y = self.al_origin[1] + self.offset
-
+        
+        start_x = origin[0]
+        start_y = origin[1]
+        
+        # Adjust for anchor
+        if anchor == "center":
+            offset_x = -box_size // 2
+            offset_y = -box_size // 2
+        else:  # top-left
+            offset_x = 0
+            offset_y = 0
+        
         for r, row in enumerate(row_labels):
             for c in range(22):
-                x = start_x + c * self.stride
-                y = start_y + r * self.stride
+                x = start_x + c * stride_x + offset_x
+                y = start_y + r * stride_y + offset_y
                 boxes[f"{row}{c+1}"] = (
-                    y, y + self.roi_size, x, x + self.roi_size
+                    y, y + box_size, x, x + box_size
                 )
-
-        # Grayscale strip
-        gs_x = self.gs_origin[0] + self.offset
-        gs_y = self.gs_origin[1] + self.offset
-
-        for c in range(24):
-            x = gs_x + c * self.stride
-            boxes[f"GS{c}"] = (
-                gs_y, gs_y + self.roi_size, x, x + self.roi_size
-            )
-
+        
+        # Grayscale strip (24 boxes)
+        if ca_origin:
+            gs_x = ca_origin[0]
+            gs_y = ca_origin[1]
+            
+            for c in range(24):
+                x = gs_x + c * stride_x + offset_x
+                boxes[f"GS{c}"] = (
+                    gs_y + offset_y, gs_y + offset_y + box_size, x, x + box_size
+                )
+        
         return boxes
-    
+        

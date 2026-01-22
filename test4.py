@@ -19,16 +19,14 @@ MODE_DEFAULTS = {
 }
 
 # ================== STYLING ==================
-st.markdown(
-    """
+st.markdown("""
 <style>
     [data-testid="stImage"] { display: flex; justify-content: center; }
     .stButton > button { border-radius: 8px; font-size: 1.2rem; font-weight: bold; }
     div[data-testid="column"] .stButton > button { padding: 0.3rem 0.5rem; min-height: 2.5rem; }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
+
 
 # ================== HELPER FUNCTIONS ==================
 def create_analyzer(image_path, ref_path, mode):
@@ -79,19 +77,19 @@ def generate_bounding_boxes(analyzer):
     """Generate bounding boxes using current session state settings"""
     if st.session_state.bbox_origin_grid is None:
         return None
-
+    
     origin = (
         st.session_state.bbox_origin_grid[0] + st.session_state.offset_x,
-        st.session_state.bbox_origin_grid[1] + st.session_state.offset_y,
+        st.session_state.bbox_origin_grid[1] + st.session_state.offset_y
     )
-
+    
     ca_origin = None
     if st.session_state.bbox_origin_ca:
         ca_origin = (
             st.session_state.bbox_origin_ca[0] + st.session_state.offset_x,
-            st.session_state.bbox_origin_ca[1] + st.session_state.offset_y,
+            st.session_state.bbox_origin_ca[1] + st.session_state.offset_y
         )
-
+    
     return analyzer._generate_bounding_boxes(
         origin=origin,
         rows=st.session_state.rows,
@@ -101,14 +99,14 @@ def generate_bounding_boxes(analyzer):
         stride_x=st.session_state.stride_x,
         stride_y=st.session_state.stride_y,
         anchor="center",
-        ca_origin=ca_origin,
+        ca_origin=ca_origin
     )
 
 
 def sync_analyzers():
     """Sync rotation and bounding boxes between original and transformed analyzers"""
     angle = st.session_state.rotate_angle
-
+    
     # Update original analyzer
     if st.session_state.analyzer_original:
         st.session_state.analyzer_original.rotate(angle)
@@ -116,7 +114,7 @@ def sync_analyzers():
         if boxes:
             st.session_state.analyzer_original.bounding_boxes = boxes
             st.session_state.current_boxes = boxes
-
+    
     # Update transformed analyzer with same settings
     if st.session_state.analyzer_transformed:
         st.session_state.analyzer_transformed.rotate(angle)
@@ -128,23 +126,25 @@ def apply_transform(transform_fn):
     """Apply transformation to original image and create transformed analyzer"""
     if not st.session_state.analyzer_original:
         return False
-
+    
     # Get the BASE (unrotated) image, apply transform, then we'll rotate the analyzer
     base_img = np.array(st.session_state.analyzer_original.base_slide)
     transformed_np = transform_fn(base_img)
     transformed_img = Image.fromarray(transformed_np)
-
+    
     # Save to temp file and create new analyzer
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as f:
         transformed_img.save(f.name)
         temp_path = f.name
-
+    
     try:
         st.session_state.analyzer_transformed = create_analyzer(
-            temp_path, st.session_state.ref_path, st.session_state.mode
+            temp_path,
+            st.session_state.ref_path,
+            st.session_state.mode
         )
         st.session_state.transformed_img = transformed_img
-
+        
         # Sync rotation and boxes
         sync_analyzers()
         return True
@@ -178,7 +178,6 @@ def reset_state_for_new_file():
     st.session_state.bbox_origin_ca = None
     st.session_state.offset_x = 0
     st.session_state.offset_y = 0
-    st.session_state.rotate_angle = 0.0  # ensure Rotate slider starts at 0 for each new file
     st.session_state.last_click_coords = None
     st.session_state.settings_hash = None
 
@@ -191,11 +190,13 @@ def init_session_state():
         "analyzer_transformed": None,
         "transformed_img": None,
         "current_boxes": None,
+        
         # File tracking
         "image_path": None,
         "ref_path": None,
         "mode": None,
         "file_key": None,
+        
         # Box settings
         "bbox_origin_grid": None,
         "bbox_origin_ca": None,
@@ -207,6 +208,7 @@ def init_session_state():
         "rotate_angle": 0.0,
         "offset_x": 0,
         "offset_y": 0,
+        
         # UI state
         "display_scale": 1.0,
         "last_click_coords": None,
@@ -233,7 +235,6 @@ if st.session_state.mode != mode:
     mode_defaults = MODE_DEFAULTS[mode]
     for key, val in mode_defaults.items():
         st.session_state[key] = val
-    st.session_state.rotate_angle = 0.0  # ensure Rotate starts at 0 when mode changes
 
 # -------- File Uploads --------
 col1, col2, col3, col4 = st.columns(4)
@@ -264,13 +265,13 @@ file_key = (uploaded_img.name, uploaded_ref.name if uploaded_ref else None, mode
 if st.session_state.file_key != file_key:
     reset_state_for_new_file()
     st.session_state.file_key = file_key
-
+    
     # Save uploaded files
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as tmp:
         uploaded_img.seek(0)
         tmp.write(uploaded_img.read())
         st.session_state.image_path = tmp.name
-
+    
     if uploaded_ref:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
             uploaded_ref.seek(0)
@@ -278,10 +279,12 @@ if st.session_state.file_key != file_key:
             st.session_state.ref_path = tmp.name
     else:
         st.session_state.ref_path = None
-
+    
     # Create original analyzer
     st.session_state.analyzer_original = create_analyzer(
-        st.session_state.image_path, st.session_state.ref_path, mode
+        st.session_state.image_path,
+        st.session_state.ref_path,
+        mode
     )
 
 # -------- Bounding Box Settings --------
@@ -299,15 +302,15 @@ with st.expander("Bounding Box Generator", expanded=True):
         st.session_state.stride_y = c3.number_input("Stride Y", 1, 500, st.session_state.stride_y)
         st.session_state.rows = c4.number_input("Rows", 1, 50, st.session_state.rows)
         st.session_state.cols = c5.number_input("Cols", 1, 50, st.session_state.cols)
-
+    
+    # st.session_state.rotate_angle = st.slider("Rotate", -10.0, 10.0, st.session_state.rotate_angle, 0.1)
     st.slider(
-        "Rotate",
-        -10.0,
-        10.0,
-        value=0.0,   # initial value (used when session_state doesn't already have rotate_angle)
-        step=0.1,
-        key="rotate_angle",
-    )
+    "Rotate",
+    -10.0,
+    10.0,
+    step=0.1,
+    key="rotate_angle",
+)
 
 # -------- Sync analyzers when settings change --------
 current_hash = get_settings_hash()
@@ -320,17 +323,17 @@ margin1, img_col1, ctrl_col, img_col2, margin2 = st.columns([0.5, 4, 1, 4, 0.5])
 
 with img_col1:
     st.subheader("Original Image")
-
+    
     analyzer = st.session_state.analyzer_original
     if analyzer:
         if st.session_state.current_boxes:
             display_img, scale = resize_for_display(analyzer.draw_boxes(), max_width=800)
         else:
             display_img, scale = resize_for_display(analyzer.slide, max_width=800)
-
+        
         st.session_state.display_scale = scale
         coords = streamlit_image_coordinates(display_img, key="img_click")
-
+        
         # Handle click
         if coords:
             click_key = (coords["x"], coords["y"])
@@ -338,26 +341,28 @@ with img_col1:
                 st.session_state.last_click_coords = click_key
                 orig_x = int(coords["x"] / scale)
                 orig_y = int(coords["y"] / scale)
-
+                
                 if st.session_state.anchor_mode == "Grid (A1)":
                     st.session_state.bbox_origin_grid = (orig_x, orig_y)
                 else:
                     st.session_state.bbox_origin_ca = (orig_x, orig_y)
                 st.rerun()
-
+    
     # Anchor controls
     st.markdown("---")
     anchor_col1, anchor_col2 = st.columns(2)
-
+    
     with anchor_col1:
         options = ["Grid (A1)", "Grayscale (GS0)"] if mode == "IT8" else ["Grid (A1)", "CA"]
-        st.radio(
-            "Click image to set:",
-            options,
-            horizontal=True,
-            key="anchor_mode",
-        )
+        # st.session_state.anchor_mode = st.radio("Click image to set:", options, horizontal=True)
 
+        st.radio(
+    "Click image to set:",
+    options,
+    horizontal=True,
+    key="anchor_mode",
+)
+    
     with anchor_col2:
         s1, s2 = st.columns(2)
         with s1:
@@ -374,17 +379,17 @@ with img_col1:
 
 with ctrl_col:
     st.subheader("Controls")
-
+    
     st.markdown("##### Move Boxes")
     move_step = st.number_input("Step (px)", 1, 100, 5, key="move_step")
-
+    
     # Arrow buttons
     _, up_col, _ = st.columns([1, 1, 1])
     with up_col:
         if st.button("▲", key="up"):
             st.session_state.offset_y -= move_step
             st.rerun()
-
+    
     left_col, _, right_col = st.columns([1, 1, 1])
     with left_col:
         if st.button("◀", key="left"):
@@ -394,13 +399,13 @@ with ctrl_col:
         if st.button("▶", key="right"):
             st.session_state.offset_x += move_step
             st.rerun()
-
+    
     _, down_col, _ = st.columns([1, 1, 1])
     with down_col:
         if st.button("▼", key="down"):
             st.session_state.offset_y += move_step
             st.rerun()
-
+    
     st.markdown("##### Scale Boxes")
     sc1, sc2 = st.columns(2)
     with sc1:
@@ -410,8 +415,7 @@ with ctrl_col:
             st.session_state.stride_y = max(1, int(st.session_state.stride_y * 0.9))
             st.rerun()
     with sc2:
-        # Use a full-width plus to avoid font/rendering issues while keeping the UI/functionality the same.
-        if st.button("＋", key="scale_up"):
+        if st.button("+", key="scale_up"):
             st.session_state.box_size = int(st.session_state.box_size * 1.1)
             st.session_state.stride_x = int(st.session_state.stride_x * 1.1)
             st.session_state.stride_y = int(st.session_state.stride_y * 1.1)
@@ -419,7 +423,7 @@ with ctrl_col:
 
 with img_col2:
     st.subheader("Transformed Image")
-
+    
     analyzer_t = st.session_state.analyzer_transformed
     if analyzer_t:
         if st.session_state.current_boxes:
@@ -464,20 +468,20 @@ st.divider()
 
 if mode != "Apply" and st.session_state.current_boxes:
     color_hex_col = lambda val: f"background-color: {val};"
-
+    
     df_col1, df_col2 = st.columns(2)
-
+    
     with df_col1:
         st.subheader("Original Data")
         df_orig = pd.DataFrame(st.session_state.analyzer_original.process())
-        st.dataframe(df_orig.style.map(color_hex_col, subset=["hex"]), hide_index=True)
+        st.dataframe(df_orig.style.map(color_hex_col, subset=['hex']), hide_index=True)
         st.metric("Mean ΔE", round(df_orig["delta"].mean(), 2))
-
+    
     with df_col2:
         st.subheader("Transformed Data")
         if st.session_state.analyzer_transformed:
             df_trans = pd.DataFrame(st.session_state.analyzer_transformed.process())
-            st.dataframe(df_trans.style.map(color_hex_col, subset=["hex"]), hide_index=True)
+            st.dataframe(df_trans.style.map(color_hex_col, subset=['hex']), hide_index=True)
             st.metric("Mean ΔE", round(df_trans["delta"].mean(), 2))
         else:
             st.info("No transformed data yet")
