@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "applied-image-analyzer"
 version = "0.1.0"
 dependencies = [
-  "streamlit",
-  "pandas",
-  "pillow",
-  "numpy",
-  "scikit-image"
+  "streamlit==1.53.0",
+  "pandas==2.3.3",
+  "pillow==12.1.0",
+  "numpy==2.2.6",
+  "scikit-image==0.25.2"
 ]
