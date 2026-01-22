@@ -11,5 +11,5 @@ dependencies = [
   "pandas>=2.3.3",
   "pillow>=12.1.0",
   "numpy>=2.2.0",        
-  "scikit-image=?=0.25.2"
+  "scikit-image>=0.25.2"
 ]
